@@ -1,0 +1,462 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mundial 2026 · Repes & Faltantes</title>
+<style>
+  :root{--bg:#0a0e17;--card:#121a2b;--card2:#0e1626;--border:#1f2940;--text:#e6e9f0;--muted:#7d8699;--gold:#f7931a;--blue:#1f6feb;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Inter',system-ui,-apple-system,sans-serif;padding:18px 14px 48px;}
+  .wrap{max-width:720px;margin:0 auto;}
+  .topbar{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;}
+  .kicker{color:var(--gold);font-size:11px;letter-spacing:2px;text-transform:uppercase;font-weight:600;}
+  h1{font-size:24px;font-weight:700;margin:4px 0 2px;}
+  p.sub{color:var(--muted);font-size:13px;margin:0 0 14px;}
+  .lang{background:var(--card2);border:1px solid var(--border);border-radius:999px;color:var(--text);font-size:12px;font-weight:700;padding:7px 12px;cursor:pointer;}
+  .tabs{display:flex;gap:8px;margin-bottom:14px;}
+  .tab{flex:1;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:var(--muted);font-size:14px;font-weight:600;padding:11px;cursor:pointer;}
+  .tab.on{background:rgba(247,147,26,.12);border-color:var(--gold);color:var(--gold);}
+  .stats{display:flex;gap:10px;margin-bottom:14px;}
+  .stat{flex:1;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 14px;}
+  .stat .n{font-size:22px;font-weight:700;font-family:ui-monospace,monospace;}
+  .stat .l{color:var(--muted);font-size:11px;}
+  .gold{color:var(--gold);}
+  button{font-family:inherit;cursor:pointer;}
+  .toolbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+  input.search{flex:1;min-width:150px;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:14px;outline:none;}
+  .btn{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:0 13px;color:var(--muted);font-size:13px;font-weight:600;white-space:nowrap;height:40px;}
+  .btn.on{background:rgba(247,147,26,.12);border-color:var(--gold);color:var(--gold);}
+  .btn.gold{background:var(--gold);border-color:var(--gold);color:#1a1206;}
+  .adder{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;}
+  .adder label{font-size:12px;color:var(--muted);width:100%;margin-bottom:-2px;}
+  select{background:var(--card2);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:14px;padding:9px 10px;outline:none;}
+  select.team{flex:2;min-width:150px;}
+  select.num{flex:1;min-width:90px;}
+  .teams{display:flex;flex-direction:column;gap:8px;}
+  .team{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+  .team.has{border-color:rgba(247,147,26,.35);}
+  .thead{width:100%;display:flex;align-items:center;gap:12px;background:none;border:none;padding:12px 14px;color:var(--text);text-align:left;}
+  .code{font-family:ui-monospace,monospace;font-weight:700;font-size:13px;color:var(--gold);width:58px;}
+  .tname{font-size:14px;flex:1;}
+  .badge{font-size:11px;font-weight:700;border-radius:999px;padding:2px 9px;font-family:ui-monospace,monospace;}
+  .badge.g{background:var(--gold);color:#1a1206;}
+  .badge.b{background:var(--blue);color:#fff;}
+  .chev{color:var(--muted);font-size:14px;transition:transform .15s;}
+  .chev.open{transform:rotate(90deg);}
+  .grid{padding:2px 12px 14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;}
+  .chip{position:relative;height:46px;border-radius:9px;background:var(--card2);border:1px solid var(--border);color:var(--muted);font-weight:500;font-size:15px;font-family:ui-monospace,monospace;display:flex;align-items:center;justify-content:center;}
+  .chip.miss{background:#2a1a1a;border-color:#5a2a2a;color:#e6a3a3;}
+  .chip.got{background:rgba(80,160,90,.18);border-color:#3a6b46;color:#8fd0a0;text-decoration:line-through;opacity:.8;}
+  .chip.on{background:var(--gold);border-color:var(--gold);color:#1a1206;font-weight:700;}
+  .chip .qty{position:absolute;top:-7px;left:-7px;background:var(--blue);color:#fff;font-size:10px;font-weight:700;border-radius:999px;min-width:18px;height:18px;line-height:18px;padding:0 3px;border:2px solid var(--bg);}
+  .chip .mini{position:absolute;width:20px;height:20px;border-radius:999px;border:2px solid var(--bg);font-size:14px;line-height:1;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0;color:#fff;}
+  .chip .minus{top:-8px;right:-8px;background:#d33;}
+  .chip .plus{bottom:-8px;right:-8px;background:#2a8a3a;}
+  .out{margin-top:20px;background:var(--card2);border:1px solid var(--border);border-radius:14px;padding:14px;}
+  .out .row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px;}
+  .out .ttl{font-size:13px;font-weight:600;}
+  .out .acts{display:flex;gap:8px;}
+  .smallbtn{background:transparent;border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--muted);font-size:12px;}
+  pre{margin:0;white-space:pre-wrap;word-break:break-word;font-family:ui-monospace,monospace;font-size:12.5px;line-height:1.7;color:var(--text);max-height:260px;overflow:auto;}
+  .foot{color:rgba(125,134,153,.6);font-size:11px;margin-top:16px;line-height:1.5;}
+  .empty{color:var(--muted);font-size:13px;text-align:center;padding:18px;}
+  .warn{color:#e6a3a3;font-size:12px;width:100%;}
+  .banner{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:rgba(247,147,26,.1);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:14px;}
+  .banner .dot{color:var(--gold);font-size:13px;font-weight:600;flex:1;min-width:150px;}
+</style>
+
+<div class="wrap">
+  <div class="topbar">
+    <div>
+      <div class="kicker" id="kicker"></div>
+      <h1 id="h1"></h1>
+    </div>
+    <button class="lang" id="langBtn"></button>
+  </div>
+  <p class="sub" id="sub"></p>
+
+  <div class="tabs">
+    <button class="tab" id="tabRepes"></button>
+    <button class="tab" id="tabFaltan"></button>
+  </div>
+
+  <div class="banner" id="banner" style="display:none">
+    <span class="dot" id="bannerMsg"></span>
+    <button class="btn gold" id="genBtn" style="height:34px"></button>
+    <button class="smallbtn" id="discardBtn"></button>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="n gold" id="stat1n">0</div><div class="l" id="stat1l"></div></div>
+    <div class="stat"><div class="n" id="stat2n">0</div><div class="l" id="stat2l"></div></div>
+  </div>
+
+  <!-- manual add (repes only) -->
+  <div class="adder" id="adder" style="display:none">
+    <label id="addLabel"></label>
+    <select class="team" id="addTeam"></select>
+    <select class="num" id="addNum"></select>
+    <button class="btn gold" id="addBtn" style="height:38px"></button>
+    <div class="warn" id="addWarn" style="display:none"></div>
+  </div>
+
+  <div class="toolbar">
+    <input class="search" id="search">
+    <button class="btn" id="filterBtn"></button>
+    <button class="btn" id="expBtn"></button>
+    <button class="btn" id="impBtn"></button>
+    <button class="btn" id="loadBtn"></button>
+    <button class="btn" id="resetBtn"></button>
+    <input type="file" id="impFile" accept="application/json" style="display:none">
+  </div>
+
+  <div class="teams" id="teams"></div>
+
+  <div class="out">
+    <div class="row">
+      <span class="ttl" id="outTitle"></span>
+      <div class="acts">
+        <button class="smallbtn" id="extraBtn" style="display:none"></button>
+        <button class="btn gold" id="copyBtn" style="height:32px;padding:0 16px;"></button>
+      </div>
+    </div>
+    <pre id="output"></pre>
+  </div>
+
+  <p class="foot" id="foot"></p>
+</div>
+
+<script>
+// ============ DATOS BASE (desde tu Excel) ============
+const NAMES_ES={PANINI:"Panini (escudo)",FWC:"FIFA",MEX:"México",RSA:"Sudáfrica",KOR:"Corea del Sur",CZE:"Rep. Checa",CAN:"Canadá",BIH:"Bosnia y H.",QAT:"Qatar",SUI:"Suiza",BRA:"Brasil",MAR:"Marruecos",HAI:"Haití",SCO:"Escocia",USA:"Estados Unidos",PAR:"Paraguay",AUS:"Australia",TUR:"Turquía",GER:"Alemania",CUW:"Curazao",CIV:"Costa de Marfil",ECU:"Ecuador",NED:"Holanda",JPN:"Japón",SWE:"Suecia",TUN:"Túnez",BEL:"Bélgica",EGY:"Egipto",IRN:"Irán",NZL:"Nueva Zelanda",ESP:"España",CPV:"Cabo Verde",KSA:"Arabia Saudita",URU:"Uruguay",FRA:"Francia",SEN:"Senegal",IRQ:"Iraq",NOR:"Noruega",ARG:"Argentina",ALG:"Algeria",AUT:"Austria",JOR:"Jordania",POR:"Portugal",COD:"Congo",UZB:"Uzbekistán",COL:"Colombia",ENG:"Inglaterra",CRO:"Croacia",GHA:"Ghana",PAN:"Panamá",CC:"Coca-Cola"};
+const NAMES_EN={PANINI:"Panini (crest)",FWC:"FIFA",MEX:"Mexico",RSA:"South Africa",KOR:"South Korea",CZE:"Czechia",CAN:"Canada",BIH:"Bosnia & H.",QAT:"Qatar",SUI:"Switzerland",BRA:"Brazil",MAR:"Morocco",HAI:"Haiti",SCO:"Scotland",USA:"USA",PAR:"Paraguay",AUS:"Australia",TUR:"Türkiye",GER:"Germany",CUW:"Curaçao",CIV:"Ivory Coast",ECU:"Ecuador",NED:"Netherlands",JPN:"Japan",SWE:"Sweden",TUN:"Tunisia",BEL:"Belgium",EGY:"Egypt",IRN:"Iran",NZL:"New Zealand",ESP:"Spain",CPV:"Cape Verde",KSA:"Saudi Arabia",URU:"Uruguay",FRA:"France",SEN:"Senegal",IRQ:"Iraq",NOR:"Norway",ARG:"Argentina",ALG:"Algeria",AUT:"Austria",JOR:"Jordan",POR:"Portugal",COD:"DR Congo",UZB:"Uzbekistan",COL:"Colombia",ENG:"England",CRO:"Croatia",GHA:"Ghana",PAN:"Panama",CC:"Coca-Cola"};
+const ORDER=["PANINI","FWC","MEX","RSA","KOR","CZE","CAN","BIH","QAT","SUI","BRA","MAR","HAI","SCO","USA","PAR","AUS","TUR","GER","CUW","CIV","ECU","NED","JPN","SWE","TUN","BEL","EGY","IRN","NZL","ESP","CPV","KSA","URU","FRA","SEN","IRQ","NOR","ARG","ALG","AUT","JOR","POR","COD","UZB","COL","ENG","CRO","GHA","PAN","CC"];
+const RANGE={PANINI:1,FWC:19,CC:14}; // resto = 20
+function maxOf(c){return RANGE[c]||20;}
+
+// Faltantes (celdas rellenas del Excel)
+const FALTAN_DEFAULT={
+PANINI:[],FWC:[1,3,4,7,13,14,15,16,17],MEX:[2,3,6,7,10,12,13,14,18,19,20],RSA:[3,5,8,10,12,13,17,18,20],
+KOR:[4,5,6,7,8,9,10,11,16,17],CZE:[1,7,8,9,10,13,15,17,19],CAN:[2,4,5,6,7,11,14,15,16,17,18,20],
+BIH:[2,3,4,6,8,10,11,15,16,17,20],QAT:[3,4,6,8,13,14,17,18],SUI:[3,4,7,8,9,10,11,12,13,14,16],
+BRA:[2,3,6,8,9,11,12,14,15,16,17,18,19,20],MAR:[2,6,7,8,11,13,14,15,17,20],HAI:[1,3,4,5,6,8,9,11,13,14,16,17,18,19],
+SCO:[2,5,7,10,11,13,16,18,19],USA:[1,3,7,9,11,12,13,14,18],PAR:[2,5,8,11,12,13,14,15,16,18],
+AUS:[1,5,8,9,10,17,18,19],TUR:[1,3,4,6,7,9,11,12,13,17,18,19],GER:[2,3,4,5,6,7,8,9,10,12,13,14,15,17,18,19],
+CUW:[1,2,7,9,10,13,14,15,16,18,19],CIV:[4,6,8,12,14,15,16,18,20],ECU:[2,4,9,11,12,15,16,18,19,20],
+NED:[1,2,5,10,11,12,13,15,18],JPN:[3,4,5,6,7,8,9,10,12,13,14,15,16,18],SWE:[3,6,7,8,11,12,13,15,16,18,20],
+TUN:[4,6,9,12,13,16,17,18,19],BEL:[3,5,6,8,9,10,15,16,17,20],EGY:[3,4,7,9,10,12,13,15,17,20],
+IRN:[2,4,6,10,11,12,14,17,19,20],NZL:[2,4,5,6,7,8,10,11,12,13,14,15,18,19,20],ESP:[2,4,5,8,12,13,14,16,17,18],
+CPV:[2,5,6,7,10,11,17,18,19],KSA:[3,4,5,6,7,9,10,12,17,18,19],URU:[2,4,5,7,12,14,15,18,20],
+FRA:[2,4,5,9,10,12,14,15,16],SEN:[2,5,6,7,8,9,10,12,14,16,17,18],IRQ:[6,9,10,12,13,17,18,20],
+NOR:[3,4,5,8,12,15,16,17,19],ARG:[2,3,4,7,10,15,16,17,18,20],ALG:[1,4,5,6,7,8,9,12,16,17,20],
+AUT:[1,2,5,6,8,12,13,16,17,18,19,20],JOR:[3,6,7,8,9,10,12,13,14,16,17,19,20],POR:[4,5,6,9,10,11,12,14,15,16,17,18,20],
+COD:[1,3,4,7,9,14,16,20],UZB:[1,2,3,4,8,9,11,12,14,15,16,17,19,20],COL:[1,9,12,14,15,17,20],
+ENG:[1,2,4,10,11,13,16,18,19,20],CRO:[2,4,5,9,12,13,14,15,17,18,20],GHA:[3,4,5,6,7,9,10,15,17,18,19],
+PAN:[2,3,6,7,10,11,12,13,14,17,18,19,20],CC:[1,2,3,4,5,6,7,8,9,10,11,12,13,14]
+};
+
+// Repes precargadas
+const REPES_DEFAULT={
+FWC:{5:1,8:2,11:1},MEX:{9:1,11:1,16:1,17:1},RSA:{15:2},CZE:{5:1},CAN:{13:1,19:1},BIH:{18:1},
+QAT:{1:1,9:1,15:1},SUI:{1:1,18:1},MAR:{10:1},HAI:{2:1,7:1},SCO:{8:1,12:1},USA:{2:1,4:1},PAR:{4:1},
+TUR:{10:1},GER:{1:1,20:1},CUW:{5:2,20:1},CIV:{2:1,19:1},ECU:{1:1,14:1,17:1},NED:{7:1,17:1},JPN:{1:1},
+SWE:{1:1},TUN:{5:1,14:1,20:1},BEL:{1:1,4:1,14:1},IRN:{1:1},ESP:{6:1,7:1},CPV:{1:2,3:1,8:1},KSA:{15:1},
+FRA:{13:1,20:1},SEN:{1:1},IRQ:{15:1},ARG:{6:1,8:1,11:1,19:1},AUT:{7:1,11:1},POR:{8:1},
+COD:{12:1,13:1,19:1},COL:{2:1,8:1,19:1},CRO:{8:1},GHA:{12:1,14:1},PAN:{4:1}
+};
+
+// ============ TEXTOS ES/EN ============
+const STR={
+ es:{kicker:"Álbum Mundial 2026",h1:"Repes & Faltantes",
+   sub:"En «Mis repes» solo salen los cromos que tienes. En «Me faltan» solo los que te faltan.",
+   tabRepes:"Mis repes",tabFaltan:"Me faltan",
+   s_repes1:"cromos repetidos",s_repes2:"selecciones",s_faltan1:"cromos que faltan",s_faltan2:"selecciones incompletas",
+   search:"Buscar selección o código…",filterRepes:"Con repes",filterFaltan:"Con faltantes",
+   exp:"Exportar",imp:"Importar",load:"Cargar repo",reset:"Reset",copy:"Copiar",copied:"¡Copiado!",
+   clear:"Vaciar",showObtained:"Ver conseguidas",addLabel:"Añadir repe manualmente:",add:"Añadir",
+   selNum:"Nº",outRepes:"Lista de repes (para tu amigo)",outFaltan:"Lista de faltantes (las que busco)",
+   outRepesEmpty:"Añade repes y aparecerán aquí…",outFaltanEmpty:"¡No te falta nada!",
+   buscoHead:"BUSCO (Mundial 2026):",
+   warnFaltan:"No puedes añadir una repe de un cromo que te falta.",
+   confReset:"¿Restaurar tus datos iniciales del Excel? Se sobrescribe lo actual.",
+   confClear:"¿Vaciar todas las repes?",confLoad:"¿Cargar data.json del repositorio? Sobrescribe lo local.",
+   okImp:"Datos importados.",errImp:"No se pudo leer el JSON.",badFmt:"Formato no válido.",
+   okLoad:"Cargado desde data.json del repo.",noLoad:"No se encontró data.json en el repo.",
+   genJson:"Generar data.json",dirtyMsg:"Tienes cambios sin exportar",
+   dirtyExported:"Descargado ✓ — haz commit del data.json",discard:"Descartar",
+   foot:"GitHub Pages: edita, pulsa «Generar data.json» y haz commit del archivo. Al recargar, la web siempre carga el data.json del repo. alejandrorosales.me"},
+ en:{kicker:"World Cup 2026 album",h1:"Dupes & Missing",
+   sub:"In “My dupes” only stickers you own show up. In “Missing” only the ones you need.",
+   tabRepes:"My dupes",tabFaltan:"Missing",
+   s_repes1:"duplicate stickers",s_repes2:"teams",s_faltan1:"missing stickers",s_faltan2:"incomplete teams",
+   search:"Search team or code…",filterRepes:"With dupes",filterFaltan:"With missing",
+   exp:"Export",imp:"Import",load:"Load repo",reset:"Reset",copy:"Copy",copied:"Copied!",
+   clear:"Clear",showObtained:"Show obtained",addLabel:"Add a dupe manually:",add:"Add",
+   selNum:"No.",outRepes:"Dupes list (for your friend)",outFaltan:"Missing list (looking for)",
+   outRepesEmpty:"Add dupes and they'll show here…",outFaltanEmpty:"Nothing missing!",
+   buscoHead:"LOOKING FOR (World Cup 2026):",
+   warnFaltan:"You can't add a dupe of a sticker you're missing.",
+   confReset:"Restore your initial Excel data? Current data will be overwritten.",
+   confClear:"Clear all dupes?",confLoad:"Load data.json from the repo? Overwrites local.",
+   okImp:"Data imported.",errImp:"Couldn't read the JSON.",badFmt:"Invalid format.",
+   okLoad:"Loaded from repo data.json.",noLoad:"No data.json found in repo.",
+   genJson:"Generate data.json",dirtyMsg:"You have unexported changes",
+   dirtyExported:"Downloaded ✓ — commit the data.json",discard:"Discard",
+   foot:"GitHub Pages: edit, hit “Generate data.json” and commit the file. On reload, the app always loads the repo's data.json. alejandrorosales.me"}
+};
+
+// ============ ESTADO ============
+const KEY='mundial2026';
+let mem={};
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return k in mem?mem[k]:null;}},
+  set(k,v){try{localStorage.setItem(k,v);}catch(e){mem[k]=v;}}};
+function clone(o){return JSON.parse(JSON.stringify(o));}
+
+let data={repes:{},faltan:{}};
+let baseline=null,exported=false;
+let lang='es',tab='repes',openCode=null,filterOn=false,showObtained=false,filter='',addTeam='MEX';
+
+function defaults(){return{repes:clone(REPES_DEFAULT),faltan:clone(FALTAN_DEFAULT)};}
+function snap(o){return JSON.stringify({repes:(o&&o.repes)||{},faltan:(o&&o.faltan)||{}});}
+function isDirty(){return baseline?snap(data)!==snap(baseline):false;}
+function save(){exported=false;store.set(KEY,JSON.stringify(data));}
+function t(k){return STR[lang][k];}
+function names(){return lang==='es'?NAMES_ES:NAMES_EN;}
+
+// owned = rango completo menos faltan actuales
+function ownedNums(code){
+  const f=new Set(data.faltan[code]||[]);
+  const out=[];for(let i=1;i<=maxOf(code);i++){if(!f.has(i))out.push(i);}return out;
+}
+
+async function init(){
+  // El repo (data.json) SIEMPRE manda al entrar y sobrescribe lo guardado en este navegador.
+  let repo=null;
+  try{
+    const r=await fetch('./data.json?t='+Date.now());
+    if(r.ok)repo=await r.json();
+  }catch(e){}
+
+  if(repo&&repo.repes&&repo.faltan){
+    data=repo;baseline=clone(repo);
+    save(); // sobrescribe el localStorage con la versión del repo
+  }else{
+    // Sin acceso al data.json (p.ej. abierto como file://): usa la copia local o los valores por defecto.
+    const raw=store.get(KEY);
+    if(raw){try{data=JSON.parse(raw);}catch(e){data=defaults();}}
+    else{data=defaults();save();}
+    baseline=clone(data);
+  }
+  if(!data.repes)data.repes={};if(!data.faltan)data.faltan={};
+  render();
+}
+
+// ============ ACCIONES ============
+function bumpRepe(code,num,d){
+  if(!data.repes[code])data.repes[code]={};
+  const q=(data.repes[code][num]||0)+d;
+  if(q<=0)delete data.repes[code][num];else if(q<=9)data.repes[code][num]=q;
+  if(data.repes[code]&&!Object.keys(data.repes[code]).length)delete data.repes[code];
+  save();render();
+}
+function toggleFaltan(code,num){
+  const arr=data.faltan[code]||[];const i=arr.indexOf(num);
+  if(i>=0){arr.splice(i,1);} // conseguida
+  else{arr.push(num);arr.sort((a,b)=>a-b);} // restaurar
+  data.faltan[code]=arr;save();render();
+}
+function teamRepeCount(code){return data.repes[code]?Object.values(data.repes[code]).reduce((a,b)=>a+b,0):0;}
+function teamFaltanCount(code){return (data.faltan[code]||[]).length;}
+
+function buildRepeOut(){
+  const L=[];ORDER.forEach(c=>{const t=data.repes[c];if(!t)return;
+    const p=Object.keys(t).map(Number).sort((a,b)=>a-b).map(n=>`${n}(${t[n]}x)`);
+    if(p.length)L.push(`${c}: ${p.join(', ')}`);});return L.join('\n');
+}
+function buildFaltanOut(){
+  const L=[t('buscoHead')];ORDER.forEach(c=>{const a=data.faltan[c]||[];
+    if(a.length)L.push(`${c}: ${a.slice().sort((x,y)=>x-y).join(', ')}`);});
+  return L.length>1?L.join('\n'):'';
+}
+
+// ============ RENDER ============
+function render(){
+  const N=names();
+  // textos fijos
+  document.getElementById('kicker').textContent=t('kicker');
+  document.getElementById('h1').textContent=t('h1');
+  document.getElementById('sub').textContent=t('sub');
+  document.getElementById('langBtn').textContent=lang==='es'?'EN':'ES';
+  document.getElementById('tabRepes').textContent=t('tabRepes');
+  document.getElementById('tabFaltan').textContent=t('tabFaltan');
+  document.getElementById('tabRepes').className='tab'+(tab==='repes'?' on':'');
+  document.getElementById('tabFaltan').className='tab'+(tab==='faltan'?' on':'');
+  document.getElementById('search').placeholder=t('search');
+  document.getElementById('expBtn').textContent=t('exp');
+  document.getElementById('impBtn').textContent=t('imp');
+  document.getElementById('loadBtn').textContent=t('load');
+  document.getElementById('resetBtn').textContent=t('reset');
+  document.getElementById('copyBtn').textContent=t('copy');
+  document.getElementById('foot').textContent=t('foot');
+
+  // stats + filtro contextual
+  const fbtn=document.getElementById('filterBtn');
+  if(tab==='repes'){
+    let cromos=0,sel=0;ORDER.forEach(c=>{const n=teamRepeCount(c);if(n>0){cromos+=n;sel++;}});
+    document.getElementById('stat1n').textContent=cromos;
+    document.getElementById('stat2n').textContent=sel;
+    document.getElementById('stat1l').textContent=t('s_repes1');
+    document.getElementById('stat2l').textContent=t('s_repes2');
+    fbtn.textContent=t('filterRepes');
+    document.getElementById('extraBtn').style.display='none';
+  }else{
+    let cromos=0,sel=0;ORDER.forEach(c=>{const n=teamFaltanCount(c);if(n>0){cromos+=n;sel++;}});
+    document.getElementById('stat1n').textContent=cromos;
+    document.getElementById('stat2n').textContent=sel;
+    document.getElementById('stat1l').textContent=t('s_faltan1');
+    document.getElementById('stat2l').textContent=t('s_faltan2');
+    fbtn.textContent=t('filterFaltan');
+    const eb=document.getElementById('extraBtn');
+    eb.style.display='';eb.textContent=t('showObtained');
+    eb.className='smallbtn'+(showObtained?' on':'');
+  }
+  fbtn.className='btn'+(filterOn?' on':'');
+
+  // adder solo en repes
+  const adder=document.getElementById('adder');
+  if(tab==='repes'){
+    adder.style.display='';
+    document.getElementById('addLabel').textContent=t('addLabel');
+    document.getElementById('addBtn').textContent=t('add');
+    const ts=document.getElementById('addTeam');
+    ts.innerHTML=ORDER.map(c=>`<option value="${c}"${c===addTeam?' selected':''}>${c} — ${N[c]}</option>`).join('');
+    renderAddNums();
+  }else adder.style.display='none';
+
+  // lista
+  const elT=document.getElementById('teams');elT.innerHTML='';
+  const f=filter.toLowerCase();let shown=0;
+  ORDER.forEach(code=>{
+    const cnt=tab==='repes'?teamRepeCount(code):teamFaltanCount(code);
+    if(filterOn&&cnt===0)return;
+    if(f&&!(code.toLowerCase().includes(f)||N[code].toLowerCase().includes(f)))return;
+    shown++;
+    const isOpen=openCode===code;
+    const team=document.createElement('div');team.className='team'+(cnt>0?' has':'');
+    const head=document.createElement('button');head.className='thead';
+    head.innerHTML=`<span class="code">${code}</span><span class="tname">${N[code]}</span>`
+      +(cnt>0?`<span class="badge ${tab==='repes'?'g':'b'}">${cnt}</span>`:'')
+      +`<span class="chev ${isOpen?'open':''}">›</span>`;
+    head.onclick=()=>{openCode=isOpen?null:code;render();};
+    team.appendChild(head);
+    if(isOpen)team.appendChild(buildGrid(code));
+    elT.appendChild(team);
+  });
+  if(!shown){const e=document.createElement('div');e.className='empty';
+    e.textContent=filter?'—':'—';elT.appendChild(e);}
+
+  // output
+  document.getElementById('outTitle').textContent=tab==='repes'?t('outRepes'):t('outFaltan');
+  const out=tab==='repes'?buildRepeOut():buildFaltanOut();
+  document.getElementById('output').textContent=out||(tab==='repes'?t('outRepesEmpty'):t('outFaltanEmpty'));
+
+  // banner: avisa cuando hay cambios sin volcar al data.json del repo
+  const banner=document.getElementById('banner');
+  if(isDirty()){
+    banner.style.display='';
+    document.getElementById('bannerMsg').textContent=exported?t('dirtyExported'):t('dirtyMsg');
+    document.getElementById('genBtn').textContent=t('genJson');
+    document.getElementById('discardBtn').textContent=t('discard');
+  }else banner.style.display='none';
+}
+
+function renderAddNums(){
+  const sel=document.getElementById('addNum');
+  const nums=ownedNums(addTeam);
+  sel.innerHTML=nums.length?nums.map(n=>`<option value="${n}">${n}</option>`).join('')
+    :`<option value="">—</option>`;
+  document.getElementById('addBtn').disabled=!nums.length;
+}
+
+function buildGrid(code){
+  const g=document.createElement('div');g.className='grid';
+  if(tab==='repes'){
+    // SOLO los cromos que tienes repetidos (q>=1)
+    const reps=data.repes[code]||{};
+    Object.keys(reps).map(Number).sort((a,b)=>a-b).forEach(num=>{
+      const q=reps[num]||0;if(q<=0)return;
+      const chip=document.createElement('div');chip.className='chip on';
+      chip.innerHTML=`${num}`+(q>1?`<span class="qty">×${q}</span>`:'')
+        +`<button class="mini minus">−</button><button class="mini plus">+</button>`;
+      chip.querySelector('.minus').onclick=e=>{e.stopPropagation();bumpRepe(code,num,-1);};
+      chip.querySelector('.plus').onclick=e=>{e.stopPropagation();bumpRepe(code,num,1);};
+      g.appendChild(chip);
+    });
+    if(!g.children.length){const e=document.createElement('div');e.className='empty';e.style.gridColumn='1/-1';
+      e.textContent='✓';g.appendChild(e);}
+  }else{
+    const faltanSet=new Set(data.faltan[code]||[]);
+    const base=FALTAN_DEFAULT[code]||[];
+    // por defecto: solo las que faltan
+    (data.faltan[code]||[]).slice().sort((a,b)=>a-b).forEach(num=>{
+      const chip=document.createElement('div');chip.className='chip miss';chip.textContent=num;
+      chip.onclick=()=>toggleFaltan(code,num);g.appendChild(chip);
+    });
+    if(showObtained){
+      base.filter(n=>!faltanSet.has(n)).sort((a,b)=>a-b).forEach(num=>{
+        const chip=document.createElement('div');chip.className='chip got';chip.textContent=num;
+        chip.onclick=()=>toggleFaltan(code,num);g.appendChild(chip);
+      });
+    }
+    if(!g.children.length){const e=document.createElement('div');e.className='empty';e.style.gridColumn='1/-1';
+      e.textContent='✓';g.appendChild(e);}
+  }
+  return g;
+}
+
+// ============ EVENTOS ============
+document.getElementById('langBtn').onclick=()=>{lang=lang==='es'?'en':'es';render();};
+document.getElementById('tabRepes').onclick=()=>{tab='repes';openCode=null;render();};
+document.getElementById('tabFaltan').onclick=()=>{tab='faltan';openCode=null;render();};
+document.getElementById('filterBtn').onclick=()=>{filterOn=!filterOn;render();};
+document.getElementById('extraBtn').onclick=()=>{showObtained=!showObtained;render();};
+document.getElementById('search').oninput=e=>{filter=e.target.value;render();};
+document.getElementById('addTeam').onchange=e=>{addTeam=e.target.value;renderAddNums();};
+document.getElementById('addBtn').onclick=()=>{
+  const code=addTeam,num=parseInt(document.getElementById('addNum').value,10);
+  if(!num)return;
+  const w=document.getElementById('addWarn');
+  if((data.faltan[code]||[]).includes(num)){w.textContent=t('warnFaltan');w.style.display='';setTimeout(()=>w.style.display='none',2500);return;}
+  w.style.display='none';bumpRepe(code,num,1);
+};
+document.getElementById('copyBtn').onclick=()=>{
+  const txt=tab==='repes'?buildRepeOut():buildFaltanOut();if(!txt)return;
+  const done=()=>{const b=document.getElementById('copyBtn');b.textContent=t('copied');setTimeout(()=>b.textContent=t('copy'),1500);};
+  if(navigator.clipboard)navigator.clipboard.writeText(txt).then(done).catch(()=>fb(txt,done));else fb(txt,done);
+};
+function fb(txt,cb){const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');}catch(e){}document.body.removeChild(ta);cb&&cb();}
+document.getElementById('resetBtn').onclick=()=>{if(confirm(t('confReset'))){data=defaults();save();render();}};
+function exportData(){
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');
+  a.href=url;a.download='data.json';a.click();URL.revokeObjectURL(url);
+  exported=true;render();
+}
+document.getElementById('expBtn').onclick=exportData;
+document.getElementById('genBtn').onclick=exportData;
+document.getElementById('discardBtn').onclick=()=>{data=clone(baseline);save();render();};
+document.getElementById('impBtn').onclick=()=>document.getElementById('impFile').click();
+document.getElementById('impFile').onchange=e=>{
+  const file=e.target.files[0];if(!file)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);
+    if(o&&o.repes&&o.faltan){data=o;save();render();alert(t('okImp'));}else alert(t('badFmt'));
+  }catch(err){alert(t('errImp'));}e.target.value='';};r.readAsText(file);
+};
+document.getElementById('loadBtn').onclick=async()=>{
+  if(!confirm(t('confLoad')))return;
+  try{const r=await fetch('./data.json?t='+Date.now());
+    if(r.ok){const o=await r.json();if(o&&o.repes&&o.faltan){data=o;save();render();alert(t('okLoad'));}else alert(t('badFmt'));}
+    else alert(t('noLoad'));
+  }catch(e){alert(t('noLoad'));}
+};
+
+init();
+</script>
