@@ -70,12 +70,21 @@ valores por defecto.
 
 ## Verificar cambios
 
-No hay tests. Para comprobar visualmente/interactivamente sin desplegar:
+No hay tests. **Importante:** la app usa `fetch('./data.json')`, que los navegadores
+**bloquean al abrir el HTML como `file://`** (doble clic). Por eso en local hay que
+servirlo por HTTP, o el override de `data.json` no funciona y "Cargar repo" falla con
+"No se encontró data.json".
+
+Para probar en local:
 
 ```bash
-# servir en local
-python3 -m http.server 8799   # luego abrir http://localhost:8799/
+./serve.command            # busca puerto libre desde 8090 y abre el navegador
+# o, a mano:
+python3 -m http.server 8090   # luego abrir http://localhost:8090/
 ```
+
+Nota: el puerto 8000 suele estar ocupado por Docker en esta máquina; `serve.command`
+ya salta al primer puerto libre.
 
 Se ha usado el Chrome del sistema vía DevTools Protocol (Node + WebSocket nativo)
 para clics e inspección del DOM, y `--headless --screenshot` para capturas. Si el
