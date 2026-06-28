@@ -61,6 +61,21 @@
   .warn{color:#e6a3a3;font-size:12px;width:100%;}
   .banner{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:rgba(247,147,26,.1);border:1px solid var(--gold);border-radius:12px;padding:10px 14px;margin-bottom:14px;}
   .banner .dot{color:var(--gold);font-size:13px;font-weight:600;flex:1;min-width:150px;}
+  .statszone{display:flex;flex-direction:column;gap:12px;}
+  .scard{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;}
+  .scard h3{margin:0 0 10px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);font-weight:700;}
+  .progwrap{height:14px;background:var(--card2);border:1px solid var(--border);border-radius:999px;overflow:hidden;margin:6px 0 4px;}
+  .progbar{height:100%;background:linear-gradient(90deg,#f7931a,#ffb454);border-radius:999px;transition:width .3s;}
+  .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .scell{background:var(--card2);border:1px solid var(--border);border-radius:11px;padding:10px 12px;}
+  .scell .n{font-size:21px;font-weight:700;font-family:ui-monospace,monospace;}
+  .scell .l{color:var(--muted);font-size:11px;margin-top:2px;line-height:1.3;}
+  .srow{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);}
+  .srow:last-child{border-bottom:none;}
+  .srow .nm{font-size:13px;display:flex;align-items:center;gap:8px;}
+  .srow .nm b{font-family:ui-monospace,monospace;color:var(--gold);font-size:12px;}
+  .srow .vv{font-family:ui-monospace,monospace;font-size:13px;font-weight:700;}
+  .snote{color:var(--muted);font-size:11px;line-height:1.5;margin-top:2px;}
 </style>
 
 <div class="wrap">
@@ -76,6 +91,7 @@
   <div class="tabs">
     <button class="tab" id="tabRepes"></button>
     <button class="tab" id="tabFaltan"></button>
+    <button class="tab" id="tabStats"></button>
   </div>
 
   <div class="banner" id="banner" style="display:none">
@@ -84,7 +100,9 @@
     <button class="smallbtn" id="discardBtn"></button>
   </div>
 
-  <div class="stats">
+  <div class="statszone" id="statsZone" style="display:none"></div>
+
+  <div class="stats" id="topStats">
     <div class="stat"><div class="n gold" id="stat1n">0</div><div class="l" id="stat1l"></div></div>
     <div class="stat"><div class="n" id="stat2n">0</div><div class="l" id="stat2l"></div></div>
   </div>
@@ -98,7 +116,7 @@
     <div class="warn" id="addWarn" style="display:none"></div>
   </div>
 
-  <div class="toolbar">
+  <div class="toolbar" id="toolbar">
     <input class="search" id="search">
     <button class="btn" id="filterBtn"></button>
     <button class="btn" id="expBtn"></button>
@@ -110,7 +128,7 @@
 
   <div class="teams" id="teams"></div>
 
-  <div class="out">
+  <div class="out" id="outBox">
     <div class="row">
       <span class="ttl" id="outTitle"></span>
       <div class="acts">
@@ -131,6 +149,8 @@ const NAMES_EN={PANINI:"Panini (crest)",FWC:"FIFA",MEX:"Mexico",RSA:"South Afric
 const ORDER=["PANINI","FWC","MEX","RSA","KOR","CZE","CAN","BIH","QAT","SUI","BRA","MAR","HAI","SCO","USA","PAR","AUS","TUR","GER","CUW","CIV","ECU","NED","JPN","SWE","TUN","BEL","EGY","IRN","NZL","ESP","CPV","KSA","URU","FRA","SEN","IRQ","NOR","ARG","ALG","AUT","JOR","POR","COD","UZB","COL","ENG","CRO","GHA","PAN","CC"];
 const RANGE={PANINI:1,FWC:19,CC:14}; // resto = 20
 function maxOf(c){return RANGE[c]||20;}
+const PER_PACK=7;      // cromos por sobre (estándar Mundial 2026, fijo)
+const PACK_PRICE=1.5;  // € por sobre
 
 // Faltantes (celdas rellenas del Excel)
 const FALTAN_DEFAULT={
@@ -167,7 +187,16 @@ COD:{12:1,13:1,19:1},COL:{2:1,8:1,19:1},CRO:{8:1},GHA:{12:1,14:1},PAN:{4:1}
 const STR={
  es:{kicker:"Álbum Mundial 2026",h1:"Repes & Faltantes",
    sub:"En «Mis repes» solo salen los cromos que tienes. En «Me faltan» solo los que te faltan.",
-   tabRepes:"Mis repes",tabFaltan:"Me faltan",
+   tabRepes:"Mis repes",tabFaltan:"Me faltan",tabStats:"Estadísticas",
+   st_progressTitle:"Progreso del álbum",st_have:"conseguidos",st_total:"total del álbum",
+   st_pct:"completado",st_missing:"te faltan",st_complete:"selecciones completas",
+   st_finishTitle:"Para terminarlo (comprando sobres)",
+   st_packsLeft:"sobres estimados",st_costLeft:"coste estimado",st_perPackNew:"cromos nuevos por sobre",st_perPackDup:"repes por sobre",
+   st_finishNote:"Estimación estadística (sobres aleatorios, sin intercambiar) para conseguir los {m} cromos que te faltan. Cada sobre = "+PER_PACK+" cromos a "+PACK_PRICE.toFixed(2).replace('.',',')+" €.",
+   st_nextTitle:"Tu próximo sobre",st_pNew:"prob. de ≥1 cromo nuevo",st_expNew:"nuevos esperados",st_expDup:"repes esperadas",
+   st_teamsTitle:"Selecciones",st_mostComplete:"Más completas",st_leastComplete:"Menos completas",
+   st_mostDupes:"Más repes",st_mostMissing:"Más faltantes",
+   st_dupesTitle:"Tus repes",st_dupesTotal:"repes en total",st_dupesDistinct:"cromos distintos",st_dupesTeams:"selecciones con repes",st_dupesValue:"valor en sobres ahorrados",
    s_repes1:"cromos repetidos",s_repes2:"selecciones",s_faltan1:"cromos que faltan",s_faltan2:"selecciones incompletas",
    search:"Buscar selección o código…",filterRepes:"Con repes",filterFaltan:"Con faltantes",
    exp:"Exportar",imp:"Importar",load:"Cargar repo",reset:"Reset",copy:"Copiar",copied:"¡Copiado!",
@@ -185,7 +214,16 @@ const STR={
    foot:"GitHub Pages: edita, pulsa «Generar data.json» y haz commit del archivo. Al recargar, la web siempre carga el data.json del repo. pollitosabroson"},
  en:{kicker:"World Cup 2026 album",h1:"Dupes & Missing",
    sub:"In “My dupes” only stickers you own show up. In “Missing” only the ones you need.",
-   tabRepes:"My dupes",tabFaltan:"Missing",
+   tabRepes:"My dupes",tabFaltan:"Missing",tabStats:"Stats",
+   st_progressTitle:"Album progress",st_have:"collected",st_total:"album total",
+   st_pct:"complete",st_missing:"missing",st_complete:"complete teams",
+   st_finishTitle:"To finish it (buying packs)",
+   st_packsLeft:"estimated packs",st_costLeft:"estimated cost",st_perPackNew:"new stickers per pack",st_perPackDup:"dupes per pack",
+   st_finishNote:"Statistical estimate (random packs, no trading) to get the {m} stickers you're missing. Each pack = "+PER_PACK+" stickers at €"+PACK_PRICE.toFixed(2)+".",
+   st_nextTitle:"Your next pack",st_pNew:"chance of ≥1 new sticker",st_expNew:"expected new",st_expDup:"expected dupes",
+   st_teamsTitle:"Teams",st_mostComplete:"Most complete",st_leastComplete:"Least complete",
+   st_mostDupes:"Most dupes",st_mostMissing:"Most missing",
+   st_dupesTitle:"Your dupes",st_dupesTotal:"total dupes",st_dupesDistinct:"distinct stickers",st_dupesTeams:"teams with dupes",st_dupesValue:"value in packs saved",
    s_repes1:"duplicate stickers",s_repes2:"teams",s_faltan1:"missing stickers",s_faltan2:"incomplete teams",
    search:"Search team or code…",filterRepes:"With dupes",filterFaltan:"With missing",
    exp:"Export",imp:"Import",load:"Load repo",reset:"Reset",copy:"Copy",copied:"Copied!",
@@ -277,6 +315,88 @@ function buildFaltanOut(){
   return L.length>1?L.join('\n'):'';
 }
 
+// ============ ESTADÍSTICAS ============
+function computeStats(){
+  let total=0,have=0,missing=0,completeTeams=0;const teams=[];
+  ORDER.forEach(c=>{
+    const max=maxOf(c),fc=teamFaltanCount(c),owned=max-fc,rc=teamRepeCount(c);
+    total+=max;have+=owned;missing+=fc;if(fc===0)completeTeams++;
+    teams.push({code:c,max,owned,faltan:fc,repe:rc,pct:max?owned/max:0});
+  });
+  const p=total?have/total:0;
+  // sobres restantes ≈ coupon collector: E[cromos] = total * H_missing (H_m = Σ 1/k)
+  let H=0;for(let k=1;k<=missing;k++)H+=1/k;
+  const stickersNeeded=missing>0?total*H:0;
+  const packsLeft=Math.ceil(stickersNeeded/PER_PACK);
+  const costLeft=packsLeft*PACK_PRICE;
+  const pNew=missing>0?1-Math.pow(p,PER_PACK):0; // prob. ≥1 nuevo en el próximo sobre
+  const expNew=PER_PACK*(1-p),expDup=PER_PACK*p;
+  let dupTotal=0,dupDistinct=0,dupTeams=0;
+  ORDER.forEach(c=>{const tt=data.repes[c];if(tt){const ks=Object.keys(tt);if(ks.length){dupTeams++;dupDistinct+=ks.length;dupTotal+=Object.values(tt).reduce((a,b)=>a+b,0);}}});
+  return {total,have,missing,completeTeams,p,packsLeft,costLeft,pNew,expNew,expDup,teams,dupTotal,dupDistinct,dupTeams};
+}
+
+function renderStats(){
+  const N=names(),z=document.getElementById('statsZone'),s=computeStats();
+  const loc=lang==='es'?'es-ES':'en-US';
+  const numfmt=v=>v.toLocaleString(loc);
+  const money=v=>v.toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
+  const sign=v=>lang==='es'?money(v)+' €':'€'+money(v);
+  const pct=(s.p*100).toFixed(1);
+  const rows=(list,valFn)=>list.map(o=>`<div class="srow"><span class="nm"><b>${o.code}</b>${N[o.code]}</span><span class="vv">${valFn(o)}</span></div>`).join('');
+  const lbl=tx=>`<div style="font-size:11px;color:var(--muted);margin:10px 0 2px;text-transform:uppercase;letter-spacing:.5px">${tx}</div>`;
+  const pctRow=o=>Math.round(o.pct*100)+'%';
+  // PANINI (escudo, 1 cromo) siempre da 100%: lo excluimos del ranking de más completas
+  const mostComplete=[...s.teams].filter(tm=>tm.code!=='PANINI').sort((a,b)=>b.pct-a.pct).slice(0,5);
+  const leastComplete=[...s.teams].sort((a,b)=>a.pct-b.pct).slice(0,5);
+  const mostMissing=[...s.teams].filter(t=>t.faltan>0).sort((a,b)=>b.faltan-a.faltan).slice(0,5);
+  const mostDupes=[...s.teams].filter(t=>t.repe>0).sort((a,b)=>b.repe-a.repe).slice(0,5);
+  z.innerHTML=`
+   <div class="scard">
+     <h3>${t('st_progressTitle')}</h3>
+     <div class="progwrap"><div class="progbar" style="width:${pct}%"></div></div>
+     <div class="snote">${numfmt(s.have)} / ${numfmt(s.total)} · ${pct}% ${t('st_pct')}</div>
+     <div class="sgrid" style="margin-top:12px">
+       <div class="scell"><div class="n gold">${numfmt(s.have)}</div><div class="l">${t('st_have')}</div></div>
+       <div class="scell"><div class="n">${numfmt(s.missing)}</div><div class="l">${t('st_missing')}</div></div>
+       <div class="scell"><div class="n">${numfmt(s.total)}</div><div class="l">${t('st_total')}</div></div>
+       <div class="scell"><div class="n">${s.completeTeams}</div><div class="l">${t('st_complete')}</div></div>
+     </div>
+   </div>
+   <div class="scard">
+     <h3>${t('st_finishTitle')}</h3>
+     <div class="sgrid">
+       <div class="scell"><div class="n gold">${numfmt(s.packsLeft)}</div><div class="l">${t('st_packsLeft')}</div></div>
+       <div class="scell"><div class="n gold">${sign(s.costLeft)}</div><div class="l">${t('st_costLeft')}</div></div>
+     </div>
+     <div class="snote" style="margin-top:10px">${t('st_finishNote').replace('{m}',numfmt(s.missing))}</div>
+   </div>
+   <div class="scard">
+     <h3>${t('st_nextTitle')}</h3>
+     <div class="sgrid">
+       <div class="scell"><div class="n gold">${Math.round(s.pNew*100)}%</div><div class="l">${t('st_pNew')}</div></div>
+       <div class="scell"><div class="n">${s.expDup.toFixed(1)}<span style="font-size:12px;color:var(--muted)"> / ${PER_PACK}</span></div><div class="l">${t('st_expDup')}</div></div>
+     </div>
+     <div class="snote" style="margin-top:10px">${t('st_expNew')}: ${s.expNew.toFixed(1)} / ${PER_PACK}</div>
+   </div>
+   <div class="scard">
+     <h3>${t('st_teamsTitle')}</h3>
+     ${lbl(t('st_mostComplete'))}${rows(mostComplete,pctRow)}
+     ${lbl(t('st_leastComplete'))}${rows(leastComplete,pctRow)}
+     ${lbl(t('st_mostMissing'))}${rows(mostMissing,o=>o.faltan)}
+     ${mostDupes.length?lbl(t('st_mostDupes'))+rows(mostDupes,o=>o.repe):''}
+   </div>
+   <div class="scard">
+     <h3>${t('st_dupesTitle')}</h3>
+     <div class="sgrid">
+       <div class="scell"><div class="n gold">${s.dupTotal}</div><div class="l">${t('st_dupesTotal')}</div></div>
+       <div class="scell"><div class="n">${s.dupDistinct}</div><div class="l">${t('st_dupesDistinct')}</div></div>
+       <div class="scell"><div class="n">${s.dupTeams}</div><div class="l">${t('st_dupesTeams')}</div></div>
+       <div class="scell"><div class="n">${(s.dupTotal/PER_PACK).toFixed(1)}</div><div class="l">${t('st_dupesValue')}</div></div>
+     </div>
+   </div>`;
+}
+
 // ============ RENDER ============
 function render(){
   const N=names();
@@ -287,8 +407,17 @@ function render(){
   document.getElementById('langBtn').textContent=lang==='es'?'EN':'ES';
   document.getElementById('tabRepes').textContent=t('tabRepes');
   document.getElementById('tabFaltan').textContent=t('tabFaltan');
+  document.getElementById('tabStats').textContent=t('tabStats');
   document.getElementById('tabRepes').className='tab'+(tab==='repes'?' on':'');
   document.getElementById('tabFaltan').className='tab'+(tab==='faltan'?' on':'');
+  document.getElementById('tabStats').className='tab'+(tab==='stats'?' on':'');
+  const statsMode=tab==='stats';
+  document.getElementById('statsZone').style.display=statsMode?'':'none';
+  document.getElementById('topStats').style.display=statsMode?'none':'';
+  document.getElementById('toolbar').style.display=statsMode?'none':'';
+  document.getElementById('teams').style.display=statsMode?'none':'';
+  document.getElementById('outBox').style.display=statsMode?'none':'';
+  if(statsMode){document.getElementById('adder').style.display='none';renderStats();renderBanner();return;}
   document.getElementById('search').placeholder=t('search');
   document.getElementById('expBtn').textContent=t('exp');
   document.getElementById('impBtn').textContent=t('imp');
@@ -358,7 +487,11 @@ function render(){
   const out=tab==='repes'?buildRepeOut():buildFaltanOut();
   document.getElementById('output').textContent=out||(tab==='repes'?t('outRepesEmpty'):t('outFaltanEmpty'));
 
-  // banner: avisa cuando hay cambios sin volcar al data.json del repo
+  renderBanner();
+}
+
+// banner: avisa cuando hay cambios sin volcar al data.json del repo
+function renderBanner(){
   const banner=document.getElementById('banner');
   if(isDirty()){
     banner.style.display='';
@@ -416,6 +549,7 @@ function buildGrid(code){
 document.getElementById('langBtn').onclick=()=>{lang=lang==='es'?'en':'es';render();};
 document.getElementById('tabRepes').onclick=()=>{tab='repes';openCode=null;render();};
 document.getElementById('tabFaltan').onclick=()=>{tab='faltan';openCode=null;render();};
+document.getElementById('tabStats').onclick=()=>{tab='stats';openCode=null;render();};
 document.getElementById('filterBtn').onclick=()=>{filterOn=!filterOn;render();};
 document.getElementById('extraBtn').onclick=()=>{showObtained=!showObtained;render();};
 document.getElementById('search').oninput=e=>{filter=e.target.value;render();};
