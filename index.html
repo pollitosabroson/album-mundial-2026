@@ -88,6 +88,10 @@
   </div>
   <p class="sub" id="sub"></p>
 
+  <div class="banner" id="fileWarn" style="display:none;border-color:#5a2a2a;background:#2a1a1a">
+    <span class="dot" id="fileWarnMsg" style="color:#e6a3a3"></span>
+  </div>
+
   <div class="tabs">
     <button class="tab" id="tabRepes"></button>
     <button class="tab" id="tabFaltan"></button>
@@ -209,6 +213,7 @@ const STR={
    confClear:"¿Vaciar todas las repes?",confLoad:"¿Cargar data.json del repositorio? Sobrescribe lo local.",
    okImp:"Datos importados.",errImp:"No se pudo leer el JSON.",badFmt:"Formato no válido.",
    okLoad:"Cargado desde data.json del repo.",noLoad:"No se encontró data.json en el repo.",
+   fileWarn:"Estás abriendo el archivo directamente (file://). Así el navegador bloquea data.json y no se carga ni se actualiza. Ábrelo con serve.command o desde la web (GitHub Pages).",
    genJson:"Generar data.json",dirtyMsg:"Tienes cambios sin exportar",
    dirtyExported:"Descargado ✓ — haz commit del data.json",discard:"Descartar",
    foot:"GitHub Pages: edita, pulsa «Generar data.json» y haz commit del archivo. Al recargar, la web siempre carga el data.json del repo. pollitosabroson"},
@@ -236,6 +241,7 @@ const STR={
    confClear:"Clear all dupes?",confLoad:"Load data.json from the repo? Overwrites local.",
    okImp:"Data imported.",errImp:"Couldn't read the JSON.",badFmt:"Invalid format.",
    okLoad:"Loaded from repo data.json.",noLoad:"No data.json found in repo.",
+   fileWarn:"You're opening the file directly (file://). The browser blocks data.json this way, so it won't load or update. Open it with serve.command or from the web (GitHub Pages).",
    genJson:"Generate data.json",dirtyMsg:"You have unexported changes",
    dirtyExported:"Downloaded ✓ — commit the data.json",discard:"Discard",
    foot:"GitHub Pages: edit, hit “Generate data.json” and commit the file. On reload, the app always loads the repo's data.json. pollitosabroson"}
@@ -249,7 +255,7 @@ const store={get(k){try{return localStorage.getItem(k);}catch(e){return k in mem
 function clone(o){return JSON.parse(JSON.stringify(o));}
 
 let data={repes:{},faltan:{}};
-let baseline=null,exported=false;
+let baseline=null,exported=false,fileMode=false;
 let lang='es',tab='repes',openCode=null,filterOn=false,showObtained=false,filter='',addTeam='MEX';
 
 function defaults(){return{repes:clone(REPES_DEFAULT),faltan:clone(FALTAN_DEFAULT)};}
@@ -266,6 +272,7 @@ function ownedNums(code){
 }
 
 async function init(){
+  fileMode=location.protocol==='file:'; // abierto como archivo: fetch bloqueado
   // El repo (data.json) SIEMPRE manda al entrar y sobrescribe lo guardado en este navegador.
   let repo=null;
   try{
@@ -492,6 +499,9 @@ function render(){
 
 // banner: avisa cuando hay cambios sin volcar al data.json del repo
 function renderBanner(){
+  const fw=document.getElementById('fileWarn');
+  if(fileMode){fw.style.display='';document.getElementById('fileWarnMsg').textContent=t('fileWarn');}
+  else fw.style.display='none';
   const banner=document.getElementById('banner');
   if(isDirty()){
     banner.style.display='';
