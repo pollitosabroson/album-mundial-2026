@@ -153,6 +153,8 @@ const NAMES_EN={PANINI:"Panini (crest)",FWC:"FIFA",MEX:"Mexico",RSA:"South Afric
 const ORDER=["PANINI","FWC","MEX","RSA","KOR","CZE","CAN","BIH","QAT","SUI","BRA","MAR","HAI","SCO","USA","PAR","AUS","TUR","GER","CUW","CIV","ECU","NED","JPN","SWE","TUN","BEL","EGY","IRN","NZL","ESP","CPV","KSA","URU","FRA","SEN","IRQ","NOR","ARG","ALG","AUT","JOR","POR","COD","UZB","COL","ENG","CRO","GHA","PAN","CC"];
 const RANGE={PANINI:1,FWC:19,CC:14}; // resto = 20
 function maxOf(c){return RANGE[c]||20;}
+const SPECIAL=["PANINI","FWC","CC"]; // no son selecciones nacionales: se agrupan aparte
+const isSpecial=c=>SPECIAL.includes(c);
 const PER_PACK=7;      // cromos por sobre (estándar Mundial 2026, fijo)
 const PACK_PRICE=1.5;  // € por sobre
 
@@ -198,7 +200,7 @@ const STR={
    st_packsLeft:"sobres estimados",st_costLeft:"coste estimado",st_perPackNew:"cromos nuevos por sobre",st_perPackDup:"repes por sobre",
    st_finishNote:"Estimación estadística (sobres aleatorios, sin intercambiar) para conseguir los {m} cromos que te faltan. Cada sobre = "+PER_PACK+" cromos a "+PACK_PRICE.toFixed(2).replace('.',',')+" €.",
    st_nextTitle:"Tu próximo sobre",st_pNew:"prob. de ≥1 cromo nuevo",st_expNew:"nuevos esperados",st_expDup:"repes esperadas",
-   st_teamsTitle:"Selecciones",st_mostComplete:"Más completas",st_leastComplete:"Menos completas",
+   st_teamsTitle:"Selecciones",st_specialsTitle:"Especiales",st_completeList:"Completas",st_mostComplete:"Más completas",st_leastComplete:"Menos completas",
    st_mostDupes:"Más repes",st_mostMissing:"Más faltantes",
    st_dupesTitle:"Tus repes",st_dupesTotal:"repes en total",st_dupesDistinct:"cromos distintos",st_dupesTeams:"selecciones con repes",st_dupesValue:"valor en sobres ahorrados",
    s_repes1:"cromos repetidos",s_repes2:"selecciones",s_faltan1:"cromos que faltan",s_faltan2:"selecciones incompletas",
@@ -226,7 +228,7 @@ const STR={
    st_packsLeft:"estimated packs",st_costLeft:"estimated cost",st_perPackNew:"new stickers per pack",st_perPackDup:"dupes per pack",
    st_finishNote:"Statistical estimate (random packs, no trading) to get the {m} stickers you're missing. Each pack = "+PER_PACK+" stickers at €"+PACK_PRICE.toFixed(2)+".",
    st_nextTitle:"Your next pack",st_pNew:"chance of ≥1 new sticker",st_expNew:"expected new",st_expDup:"expected dupes",
-   st_teamsTitle:"Teams",st_mostComplete:"Most complete",st_leastComplete:"Least complete",
+   st_teamsTitle:"Teams",st_specialsTitle:"Specials",st_completeList:"Complete",st_mostComplete:"Most complete",st_leastComplete:"Least complete",
    st_mostDupes:"Most dupes",st_mostMissing:"Most missing",
    st_dupesTitle:"Your dupes",st_dupesTotal:"total dupes",st_dupesDistinct:"distinct stickers",st_dupesTeams:"teams with dupes",st_dupesValue:"value in packs saved",
    s_repes1:"duplicate stickers",s_repes2:"teams",s_faltan1:"missing stickers",s_faltan2:"incomplete teams",
@@ -353,11 +355,17 @@ function renderStats(){
   const rows=(list,valFn)=>list.map(o=>`<div class="srow"><span class="nm"><b>${o.code}</b>${N[o.code]}</span><span class="vv">${valFn(o)}</span></div>`).join('');
   const lbl=tx=>`<div style="font-size:11px;color:var(--muted);margin:10px 0 2px;text-transform:uppercase;letter-spacing:.5px">${tx}</div>`;
   const pctRow=o=>Math.round(o.pct*100)+'%';
-  // PANINI (escudo, 1 cromo) siempre da 100%: lo excluimos del ranking de más completas
-  const mostComplete=[...s.teams].filter(tm=>tm.code!=='PANINI').sort((a,b)=>b.pct-a.pct).slice(0,5);
-  const leastComplete=[...s.teams].sort((a,b)=>a.pct-b.pct).slice(0,5);
-  const mostMissing=[...s.teams].filter(t=>t.faltan>0).sort((a,b)=>b.faltan-a.faltan).slice(0,5);
-  const mostDupes=[...s.teams].filter(t=>t.repe>0).sort((a,b)=>b.repe-a.repe).slice(0,5);
+  // especiales (PANINI/FWC/CC) van en su propia tarjeta; los rankings de "Selecciones"
+  // se calculan solo sobre las selecciones nacionales para no duplicarlas.
+  const specials=SPECIAL.map(c=>s.teams.find(t=>t.code===c)).filter(Boolean);
+  const nat=s.teams.filter(t=>!isSpecial(t.code));
+  // completas (100%): lista propia; se excluyen de "Más completas" para que ese ranking
+  // muestre solo las incompletas más avanzadas.
+  const completeList=nat.filter(tm=>tm.pct>=1);
+  const mostComplete=[...nat].filter(tm=>tm.pct<1).sort((a,b)=>b.pct-a.pct).slice(0,5);
+  const leastComplete=[...nat].sort((a,b)=>a.pct-b.pct).slice(0,5);
+  const mostMissing=[...nat].filter(t=>t.faltan>0).sort((a,b)=>b.faltan-a.faltan).slice(0,5);
+  const mostDupes=[...nat].filter(t=>t.repe>0).sort((a,b)=>b.repe-a.repe).slice(0,5);
   z.innerHTML=`
    <div class="scard">
      <h3>${t('st_progressTitle')}</h3>
@@ -387,8 +395,13 @@ function renderStats(){
      <div class="snote" style="margin-top:10px">${t('st_expNew')}: ${s.expNew.toFixed(1)} / ${PER_PACK}</div>
    </div>
    <div class="scard">
+     <h3>${t('st_specialsTitle')}</h3>
+     ${rows(specials,o=>o.pct>=1?'✓ 100%':o.owned+'/'+o.max+' · '+Math.round(o.pct*100)+'%')}
+   </div>
+   <div class="scard">
      <h3>${t('st_teamsTitle')}</h3>
-     ${lbl(t('st_mostComplete'))}${rows(mostComplete,pctRow)}
+     ${completeList.length?lbl(t('st_completeList')+' ('+completeList.length+')')+rows(completeList,()=>'✓ 100%'):''}
+     ${mostComplete.length?lbl(t('st_mostComplete'))+rows(mostComplete,pctRow):''}
      ${lbl(t('st_leastComplete'))}${rows(leastComplete,pctRow)}
      ${lbl(t('st_mostMissing'))}${rows(mostMissing,o=>o.faltan)}
      ${mostDupes.length?lbl(t('st_mostDupes'))+rows(mostDupes,o=>o.repe):''}
