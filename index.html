@@ -79,6 +79,16 @@
   .bar{height:7px;background:var(--card2);border-radius:999px;overflow:hidden;flex:none;}
   .bar>span{display:block;height:100%;border-radius:999px;}
   .srow .val{font-family:ui-monospace,monospace;font-weight:800;font-size:12.5px;width:44px;text-align:right;flex:none;}
+  .srow.click{cursor:pointer;}
+  .srow .caret{font-size:10px;color:var(--muted);width:12px;flex:none;text-align:center;}
+  /* rejilla desplegable de una selección en rankings */
+  .sgrid20{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;padding:4px 0 10px;border-bottom:1px solid var(--line);}
+  .srow.click.open{border-bottom:none;}
+  .scube{height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:ui-monospace,monospace;font-weight:800;font-size:13px;border:1.5px solid;}
+  .scube.got{background:var(--greensoft);color:var(--green);border-color:var(--green);}
+  .scube.miss{background:var(--coralsoft);color:var(--coral);border-color:var(--coral);border-style:dashed;}
+  .morebtn{display:block;width:100%;margin-top:10px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--card2);color:var(--ink);font-size:12.5px;font-weight:700;cursor:pointer;}
+  .morebtn:hover{border-color:var(--gold);}
   /* collection top stats */
   .topcards{display:flex;gap:10px;margin-bottom:14px;}
   .topcard{flex:1;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 15px;box-shadow:0 2px 0 var(--line);}
@@ -276,7 +286,7 @@ const STR={
    st_finishNote:"Estimación estadística (sobres aleatorios, sin intercambiar) para conseguir los {m} cromos que te faltan. Cada sobre = "+PER_PACK+" cromos a "+PACK_PRICE.toFixed(2).replace('.',',')+" €.",
    st_nextTitle:"Tu próximo sobre",st_pNew:"prob. de ≥1 cromo nuevo",st_expNew:"nuevos esperados",st_expDup:"repes esperadas",
    st_teamsTitle:"Selecciones",st_specialsTitle:"Especiales",st_completeList:"Completas",st_mostComplete:"Más completas",st_leastComplete:"Menos completas",
-   st_mostDupes:"Más repes",st_mostMissing:"Más faltantes",
+   st_mostDupes:"Más repes",st_mostMissing:"Más faltantes",st_showMore:"Ver todas",st_showLess:"Ver menos",
    st_dupesTitle:"Tus repes",st_dupesTotal:"repes en total",st_dupesDistinct:"cromos distintos",st_dupesTeams:"selecciones con repes",st_dupesValue:"valor en sobres ahorrados",
    s_repes1:"cromos repetidos",s_repes2:"selecciones",s_faltan1:"cromos que faltan",s_faltan2:"selecciones incompletas",
    search:"Buscar selección o código…",filterRepes:"Con repes",filterFaltan:"Con faltantes",
@@ -304,7 +314,7 @@ const STR={
    st_finishNote:"Statistical estimate (random packs, no trading) to get the {m} stickers you're missing. Each pack = "+PER_PACK+" stickers at €"+PACK_PRICE.toFixed(2)+".",
    st_nextTitle:"Your next pack",st_pNew:"chance of ≥1 new sticker",st_expNew:"expected new",st_expDup:"expected dupes",
    st_teamsTitle:"Teams",st_specialsTitle:"Specials",st_completeList:"Complete",st_mostComplete:"Most complete",st_leastComplete:"Least complete",
-   st_mostDupes:"Most dupes",st_mostMissing:"Most missing",
+   st_mostDupes:"Most dupes",st_mostMissing:"Most missing",st_showMore:"Show all",st_showLess:"Show less",
    st_dupesTitle:"Your dupes",st_dupesTotal:"total dupes",st_dupesDistinct:"distinct stickers",st_dupesTeams:"teams with dupes",st_dupesValue:"value in packs saved",
    s_repes1:"duplicate stickers",s_repes2:"teams",s_faltan1:"missing stickers",s_faltan2:"incomplete teams",
    search:"Search team or code…",filterRepes:"With dupes",filterFaltan:"With missing",
@@ -335,6 +345,8 @@ function clone(o){return JSON.parse(JSON.stringify(o));}
 let data={repes:{},faltan:{}};
 let baseline=null,exported=false,fileMode=false;
 let lang='es',theme='light',tab='repes',openCode=null,filterOn=false,showObtained=false,filter='',addTeam='MEX';
+const statsOpen=new Set();      // filas de ranking desplegadas ("seccion:CODE")
+const statsShowAll={};          // secciones con "ver más" activo
 
 function defaults(){return{repes:clone(REPES_DEFAULT),faltan:clone(FALTAN_DEFAULT)};}
 function snap(o){return JSON.stringify({repes:(o&&o.repes)||{},faltan:(o&&o.faltan)||{}});}
@@ -435,11 +447,25 @@ function renderStats(){
   const money=v=>v.toLocaleString(loc,{minimumFractionDigits:2,maximumFractionDigits:2});
   const sign=v=>lang==='es'?money(v)+' €':'€'+money(v);
   const C=2*Math.PI*54; // circunferencia del donut (r=54)
-  // fila de ranking: bandera/badge + código + nombre + barra + valor
-  const rankRow=(o,val,barPct,color)=>`<div class="srow">${flagMark(o.code,false)}`
-    +`<span class="code">${o.code}</span><span class="nm">${N[o.code]}</span>`
-    +`<span class="bar" style="width:70px"><span style="width:${Math.max(3,Math.round(barPct*100))}%;background:${color}"></span></span>`
-    +`<span class="val">${val}</span></div>`;
+  // rejilla desplegable: los maxOf(code) cromos, verde=tienes / rojo=falta
+  const expandGrid=code=>{
+    const f=new Set(data.faltan[code]||[]);let cells='';
+    for(let i=1;i<=maxOf(code);i++)cells+=`<div class="scube ${f.has(i)?'miss':'got'}">${i}</div>`;
+    return `<div class="sgrid20">${cells}</div>`;
+  };
+  // fila de ranking: bandera/badge + código + nombre + barra + valor.
+  // Si sec es clicable (más/menos completas), la fila despliega la rejilla al pulsar.
+  const rankRow=(o,val,barPct,color,sec)=>{
+    const clickable=sec==='mostComplete'||sec==='leastComplete';
+    const open=clickable&&statsOpen.has(sec+':'+o.code);
+    return `<div class="srow${clickable?' click':''}${open?' open':''}"${clickable?` onclick="toggleStatRow('${sec}','${o.code}')"`:''}>${flagMark(o.code,false)}`
+      +`<span class="code">${o.code}</span><span class="nm">${N[o.code]}</span>`
+      +`<span class="bar" style="width:70px"><span style="width:${Math.max(3,Math.round(barPct*100))}%;background:${color}"></span></span>`
+      +`<span class="val">${val}</span>`
+      +(clickable?`<span class="caret">${open?'▲':'▼'}</span>`:'')
+      +`</div>`
+      +(open?expandGrid(o.code):'');
+  };
   // especiales (PANINI/FWC/CC) van en su propia tarjeta; los rankings de "Selecciones"
   // se calculan solo sobre las selecciones nacionales para no duplicarlas.
   const specials=SPECIAL.map(c=>s.teams.find(t=>t.code===c)).filter(Boolean);
@@ -447,20 +473,22 @@ function renderStats(){
   // completas (100%): lista propia; se excluyen de "Más completas" para que ese ranking
   // muestre solo las incompletas más avanzadas.
   const completeList=nat.filter(tm=>tm.pct>=1);
-  const mostComplete=[...nat].filter(tm=>tm.pct<1).sort((a,b)=>b.pct-a.pct).slice(0,5);
+  const incomplete=[...nat].filter(tm=>tm.pct<1).sort((a,b)=>b.pct-a.pct);
+  const mostComplete=statsShowAll.mostComplete?incomplete:incomplete.slice(0,5);
   const leastComplete=[...nat].sort((a,b)=>a.pct-b.pct).slice(0,5);
-  const mostMissing=[...nat].filter(t=>t.faltan>0).sort((a,b)=>b.faltan-a.faltan).slice(0,5);
   const mostDupes=[...nat].filter(t=>t.repe>0).sort((a,b)=>b.repe-a.repe).slice(0,5);
-  const maxMiss=Math.max(1,...mostMissing.map(t=>t.faltan));
   const maxDup=Math.max(1,...mostDupes.map(t=>t.repe));
+  const pctVal=o=>Math.round(o.pct*100)+'%';
   const sections=[];
-  sections.push({title:t('st_specialsTitle'),rows:specials.map(o=>rankRow(o,o.pct>=1?'100%':Math.round(o.pct*100)+'%',o.pct,'var(--gold)'))});
-  if(completeList.length)sections.push({title:t('st_completeList')+' ('+completeList.length+')',rows:completeList.map(o=>rankRow(o,'100%',1,'var(--green)'))});
-  if(mostComplete.length)sections.push({title:t('st_mostComplete'),rows:mostComplete.map(o=>rankRow(o,Math.round(o.pct*100)+'%',o.pct,'var(--gold)'))});
-  sections.push({title:t('st_leastComplete'),rows:leastComplete.map(o=>rankRow(o,Math.round(o.pct*100)+'%',o.pct,'var(--coral)'))});
-  if(mostMissing.length)sections.push({title:t('st_mostMissing'),rows:mostMissing.map(o=>rankRow(o,String(o.faltan),o.faltan/maxMiss,'var(--coral)'))});
-  if(mostDupes.length)sections.push({title:t('st_mostDupes'),rows:mostDupes.map(o=>rankRow(o,String(o.repe),o.repe/maxDup,'var(--gold)'))});
-  const sectionCards=sections.map(sec=>`<div class="card rank"><h3>${sec.title}</h3>${sec.rows.join('')}</div>`).join('');
+  sections.push({title:t('st_specialsTitle'),rows:specials.map(o=>rankRow(o,o.pct>=1?'100%':pctVal(o),o.pct,'var(--gold)','specials'))});
+  if(completeList.length)sections.push({title:t('st_completeList')+' ('+completeList.length+')',rows:completeList.map(o=>rankRow(o,'100%',1,'var(--green)','completeList'))});
+  if(mostComplete.length){
+    const foot=incomplete.length>5?`<button class="morebtn" onclick="toggleStatMore('mostComplete')">${statsShowAll.mostComplete?t('st_showLess'):t('st_showMore')+' ('+incomplete.length+')'}</button>`:'';
+    sections.push({title:t('st_mostComplete'),rows:mostComplete.map(o=>rankRow(o,pctVal(o),o.pct,'var(--gold)','mostComplete')),foot});
+  }
+  sections.push({title:t('st_leastComplete'),rows:leastComplete.map(o=>rankRow(o,pctVal(o),o.pct,'var(--coral)','leastComplete'))});
+  if(mostDupes.length)sections.push({title:t('st_mostDupes'),rows:mostDupes.map(o=>rankRow(o,String(o.repe),o.repe/maxDup,'var(--gold)','mostDupes'))});
+  const sectionCards=sections.map(sec=>`<div class="card rank"><h3>${sec.title}</h3>${sec.rows.join('')}${sec.foot||''}</div>`).join('');
 
   z.innerHTML=`
    <div class="card">
@@ -507,6 +535,11 @@ function renderStats(){
    </div>
    ${sectionCards}`;
 }
+
+// despliega/repliega la rejilla de una selección en los rankings clicables
+function toggleStatRow(sec,code){const k=sec+':'+code;if(statsOpen.has(k))statsOpen.delete(k);else statsOpen.add(k);renderStats();}
+// "ver todas / ver menos" de un ranking
+function toggleStatMore(sec){statsShowAll[sec]=!statsShowAll[sec];renderStats();}
 
 // ============ RENDER ============
 function render(){
